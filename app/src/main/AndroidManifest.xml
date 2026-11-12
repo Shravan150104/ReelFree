@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        ReelFree requests NO runtime permissions and NO internet access.
+        The only privileged capability is the Accessibility Service below, which the
+        user must enable manually in system Settings.
+    -->
+
+    <!-- Lets ReelFree check whether Instagram is installed (package visibility, API 30+). -->
+    <queries>
+        <package android:name="com.instagram.android" />
+    </queries>
+
+    <application
+        android:name=".ReelFreeApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ReelFree">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ReelFree">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            BIND_ACCESSIBILITY_SERVICE is a *protection* permission: it guarantees only the
+            Android system can bind to this service. It is not a permission ReelFree holds.
+        -->
+        <service
+            android:name=".service.ReelFreeAccessibilityService"
+            android:exported="false"
+            android:label="@string/accessibility_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/reelfree_accessibility_service" />
+        </service>
+    </application>
+</manifest>

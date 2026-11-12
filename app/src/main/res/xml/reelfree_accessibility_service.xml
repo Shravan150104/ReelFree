@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    packageNames:            events are delivered ONLY for Instagram. Other apps are never observed.
+    eventTypes:              window state + content changes are enough to notice navigation into Reels.
+    canRetrieveWindowContent: required to read the view hierarchy (view IDs, class names, short labels).
+    flagReportViewIds:       exposes resource names such as "clips_viewer_..." which are the strongest signals.
+    flagIncludeNotImportantViews: Instagram marks many containers "not important"; without this flag
+                             the structural signals are hidden.
+    No gesture, key-event, fingerprint, or screenshot capabilities are requested.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:packageNames="com.instagram.android"
+    android:settingsActivity="com.reelfree.MainActivity" />

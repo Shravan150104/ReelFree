@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ReelFree</string>
+    <string name="accessibility_service_label">ReelFree Reels blocker</string>
+    <string name="accessibility_service_description">ReelFree watches only the Instagram app. When it recognises the full-screen Reels viewer it presses Back (or taps the Home tab) for you. All processing happens on this device. ReelFree has no internet permission, never reads your messages or passwords, and never records your screen.</string>
+</resources>
