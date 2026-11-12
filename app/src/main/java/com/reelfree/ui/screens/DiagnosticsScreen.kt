@@ -60,6 +60,7 @@ fun DiagnosticsScreen(
     screens: List<ScreenSignature>,
     onEnableDebug: () -> Unit,
     onShare: () -> Unit,
+    onSave: () -> Unit,
     onClear: () -> Unit,
     contentPadding: PaddingValues,
 ) {
@@ -92,17 +93,16 @@ fun DiagnosticsScreen(
                     Button(onClick = onEnableDebug) { Text("Turn on Debug mode") }
                 }
                 Spacer(Modifier.height(8.dp))
+                val hasData = entries.isNotEmpty() || screens.isNotEmpty()
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onShare, enabled = entries.isNotEmpty() || screens.isNotEmpty()) {
-                        Text("Share report")
-                    }
-                    TextButton(onClick = onClear, enabled = entries.isNotEmpty() || screens.isNotEmpty()) {
-                        Text("Clear")
-                    }
+                    OutlinedButton(onClick = onShare, enabled = hasData) { Text("Share report") }
+                    OutlinedButton(onClick = onSave, enabled = hasData) { Text("Save file") }
                 }
+                TextButton(onClick = onClear, enabled = hasData) { Text("Clear") }
                 Text(
-                    "The report contains view IDs, class names, sizes and the fixed tab labels only. " +
-                        "Other text appears as \"text(N chars)\". It is shared only when you choose a destination.",
+                    "Share report attaches a .txt file (e.g. send it to yourself on Gmail). Save file stores it " +
+                        "wherever you choose, e.g. Downloads. The report contains view IDs, class names, sizes and " +
+                        "the fixed tab labels only; other text appears as \"text(N chars)\".",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

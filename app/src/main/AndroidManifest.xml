@@ -31,6 +31,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Shares the diagnostics report file with the app you pick in the share sheet. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!--
             BIND_ACCESSIBILITY_SERVICE is a *protection* permission: it guarantees only the
             Android system can bind to this service. It is not a permission ReelFree holds.
