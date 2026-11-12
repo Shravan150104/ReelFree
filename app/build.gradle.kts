@@ -26,7 +26,7 @@ android {
         if (f.exists()) f.inputStream().use { load(it) }
     }
     fun signingValue(env: String, prop: String): String? =
-        System.getenv(env)?.takeIf { it.isNotBlank() } ?: keystoreProps.getProperty(prop)
+        (System.getenv(env)?.takeIf { it.isNotBlank() } ?: keystoreProps.getProperty(prop))?.trim()
     val releaseStoreFile = signingValue("REELFREE_KEYSTORE_PATH", "storeFile")?.let { file(it) }
 
     signingConfigs {
