@@ -2,11 +2,18 @@ package com.reelfree.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,39 +29,55 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SmartDisplay
+import androidx.compose.material.icons.rounded.VideoLibrary
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.reelfree.ui.HomeUiState
 import com.reelfree.ui.ProtectionStatus
+import com.reelfree.ui.components.Pill
+import com.reelfree.ui.components.RowDivider
+import com.reelfree.ui.components.RowGroup
+import com.reelfree.ui.components.SectionLabel
+import com.reelfree.ui.components.SettingRow
+import com.reelfree.ui.components.Step
+import com.reelfree.ui.components.SwitchRow
+import com.reelfree.ui.theme.LocalStatusColors
 
 data class HomeActions(
     val openAccessibilitySettings: () -> Unit,
     val openAppInfo: () -> Unit,
     val setProtectionEnabled: (Boolean) -> Unit,
     val setBlockReels: (Boolean) -> Unit,
-    val setDryRun: (Boolean) -> Unit,
-    val setDebugMode: (Boolean) -> Unit,
-    val openDiagnostics: () -> Unit,
+    val openSettings: () -> Unit,
 )
 
 @Composable
@@ -62,277 +85,288 @@ fun HomeScreen(state: HomeUiState, actions: HomeActions, contentPadding: Padding
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 20.dp,
-            end = 20.dp,
-            top = contentPadding.calculateTopPadding() + 24.dp,
+            start = 16.dp,
+            end = 16.dp,
+            top = contentPadding.calculateTopPadding() + 8.dp,
             bottom = contentPadding.calculateBottomPadding() + 32.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Header() }
-        item { StatusCard(state.status, state.settings.dryRun) }
+        item { TopRow(actions.openSettings) }
+        item { StatusHero(state, actions) }
         item {
             AnimatedVisibility(
                 visible = !state.permissionGranted || !state.serviceConnected,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically(),
             ) {
-                OnboardingCard(state, actions)
+                SetupCard(state, actions)
             }
         }
-        item { ControlsCard(state, actions) }
-        if (state.instagramVersion == null) {
-            item { InfoCard("Instagram doesn't seem to be installed. ReelFree only acts inside the Instagram app.") }
-        }
-        item { DeveloperCard(state, actions) }
-        item { PrivacyCard() }
+        item { BlockersSection(state, actions) }
+        item { Footer(state.instagramVersion) }
     }
 }
 
 @Composable
-private fun Header() {
-    Column(Modifier.padding(horizontal = 4.dp)) {
-        Text("ReelFree", style = MaterialTheme.typography.displaySmall)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Take back control of your attention.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun StatusCard(status: ProtectionStatus, dryRun: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    val (title, detail, icon) = when (status) {
-        ProtectionStatus.ACTIVE -> Triple(
-            if (dryRun) "Protection Active (dry run)" else "Protection Active",
-            if (dryRun) "Reels are detected and logged, but not blocked." else "Recognised Reels viewers are closed automatically.",
-            Icons.Filled.CheckCircle,
-        )
-        ProtectionStatus.DISABLED -> Triple(
-            "Protection Disabled",
-            "The service is running but blocking is switched off.",
-            Icons.Filled.Info,
-        )
-        ProtectionStatus.PERMISSION_REQUIRED -> Triple(
-            "Accessibility Permission Required",
-            "Enable ReelFree in Accessibility settings to start blocking.",
-            Icons.Filled.Lock,
-        )
-        ProtectionStatus.SERVICE_NOT_RUNNING -> Triple(
-            "Accessibility Permission Required",
-            "ReelFree is enabled in Settings but Android isn't running it. Turn it off and on again.",
-            Icons.Filled.Warning,
-        )
-    }
-    val container by animateColorAsState(
-        targetValue = when (status) {
-            ProtectionStatus.ACTIVE -> scheme.tertiaryContainer
-            ProtectionStatus.DISABLED -> scheme.surfaceContainer
-            else -> scheme.errorContainer
-        },
-        animationSpec = tween(400),
-        label = "statusContainer",
-    )
-    val content by animateColorAsState(
-        targetValue = when (status) {
-            ProtectionStatus.ACTIVE -> scheme.onTertiaryContainer
-            ProtectionStatus.DISABLED -> scheme.onSurface
-            else -> scheme.onErrorContainer
-        },
-        animationSpec = tween(400),
-        label = "statusContent",
-    )
-    Card(
-        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = CircleShape, color = content.copy(alpha = 0.12f), contentColor = content) {
-                Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(28.dp))
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text(detail, style = MaterialTheme.typography.bodyMedium, color = content.copy(alpha = 0.85f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun OnboardingCard(state: HomeUiState, actions: HomeActions) {
-    SectionCard(title = "Set up ReelFree") {
-        val steps = listOf(
-            "Tap \"Open Accessibility Settings\" below.",
-            "Open \"Installed apps\" / \"Downloaded apps\" and choose \"ReelFree Reels blocker\".",
-            "Turn it on and confirm Android's dialog. Android shows a strong warning for every accessibility service; ReelFree only uses it to read Instagram's screen layout and press Back.",
-            "Come back here. The status card turns green.",
-        )
-        steps.forEachIndexed { index, step ->
-            Row(Modifier.padding(vertical = 4.dp)) {
-                Text("${index + 1}.", fontWeight = FontWeight.SemiBold, modifier = Modifier.width(24.dp))
-                Text(step, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = actions.openAccessibilitySettings, modifier = Modifier.fillMaxWidth()) {
-            Text("Open Accessibility Settings")
-        }
-        Spacer(Modifier.height(12.dp))
-        Text(
-            "Switch greyed out or \"Restricted setting\"? Android 13+ restricts accessibility for apps " +
-                "installed outside the Play Store. Open App info, tap the ⋮ menu, choose " +
-                "\"Allow restricted settings\", then try again.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(onClick = actions.openAppInfo, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("Open ReelFree App info")
-        }
-        if (state.permissionGranted && !state.serviceConnected) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "ReelFree is switched on but not running. Toggle it off and on again in Accessibility settings.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ControlsCard(state: HomeUiState, actions: HomeActions) {
-    val usable = state.permissionGranted
-    SectionCard(title = "Protection") {
-        ToggleRow(
-            title = "Protection",
-            subtitle = "Master switch for all blocking",
-            checked = state.settings.protectionEnabled,
-            enabled = usable,
-            onChange = actions.setProtectionEnabled,
-        )
-        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-        ToggleRow(
-            title = "Block Instagram Reels",
-            subtitle = "Leave the full-screen Reels viewer and the Reels tab",
-            checked = state.settings.blockInstagramReels,
-            enabled = usable && state.settings.protectionEnabled,
-            onChange = actions.setBlockReels,
-        )
-        if (!usable) {
-            Text(
-                "Enable the accessibility service first.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun DeveloperCard(state: HomeUiState, actions: HomeActions) {
-    SectionCard(title = "Calibration & diagnostics") {
-        Text(
-            "Instagram's layout isn't documented and changes often. Use these to check what ReelFree " +
-                "detects on your phone. No message text, captions or usernames are recorded.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(4.dp))
-        ToggleRow(
-            title = "Dry run",
-            subtitle = "Detect and log Reels, but never press Back",
-            checked = state.settings.dryRun,
-            enabled = true,
-            onChange = actions.setDryRun,
-        )
-        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-        ToggleRow(
-            title = "Debug mode",
-            subtitle = "Record matched rules and screen structure (in memory only)",
-            checked = state.settings.debugMode,
-            enabled = true,
-            onChange = actions.setDebugMode,
-        )
-        TextButton(onClick = actions.openDiagnostics, modifier = Modifier.padding(top = 4.dp)) {
-            Text("Open diagnostics")
-        }
-    }
-}
-
-@Composable
-private fun PrivacyCard() {
-    SectionCard(title = "Privacy") {
-        val points = listOf(
-            "Runs entirely on this phone. ReelFree has no internet permission.",
-            "Observes only Instagram. Other apps are never inspected.",
-            "Never reads text fields, passwords, or typed messages.",
-            "Keeps only view IDs, layout sizes, and a fixed list of tab labels such as \"Reels\" and \"Home\".",
-        )
-        points.forEach {
-            Text("• $it", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 2.dp))
-        }
-    }
-}
-
-@Composable
-private fun InfoCard(text: String) {
-    SectionCard(title = null) {
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-fun SectionCard(title: String?, content: @Composable () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            if (title != null) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-            }
-            content()
-        }
-    }
-}
-
-@Composable
-private fun ToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    enabled: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    val alpha = if (enabled) 1f else 0.5f
+private fun TopRow(openSettings: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(start = 8.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = LocalContentColorWithAlpha(alpha))
+            Text("ReelFree", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
             Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                "Take back control of your attention.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
+        IconButton(onClick = openSettings) {
+            Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+private data class HeroContent(val title: String, val subtitle: String, val icon: ImageVector, val accent: Color)
+
+@Composable
+private fun StatusHero(state: HomeUiState, actions: HomeActions) {
+    val status = LocalStatusColors.current
+    val content = when (state.status) {
+        ProtectionStatus.ACTIVE -> HeroContent(
+            "Protection active",
+            if (state.settings.dryRun) "Reels are detected but not closed." else "Reels close as soon as they open.",
+            Icons.Rounded.Shield,
+            if (state.settings.dryRun) status.warn else status.good,
+        )
+        ProtectionStatus.DISABLED -> HeroContent(
+            "Protection paused",
+            "Reels can be watched until you turn it back on.",
+            Icons.Rounded.Pause,
+            status.idle,
+        )
+        ProtectionStatus.PERMISSION_REQUIRED -> HeroContent(
+            "Permission needed",
+            "Turn on ReelFree in Accessibility settings to start.",
+            Icons.Rounded.Lock,
+            status.bad,
+        )
+        ProtectionStatus.SERVICE_NOT_RUNNING -> HeroContent(
+            "Not running",
+            "ReelFree is enabled but Android stopped it. Turn it off and on again.",
+            Icons.Rounded.Warning,
+            status.warn,
+        )
+    }
+    val accent by animateColorAsState(content.accent, tween(500), label = "heroAccent")
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            StatusOrb(content.icon, accent, pulsing = state.status == ProtectionStatus.ACTIVE)
+            Spacer(Modifier.height(20.dp))
+            Text(content.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                content.subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            if (state.status == ProtectionStatus.ACTIVE && state.settings.dryRun) {
+                Spacer(Modifier.height(12.dp))
+                Pill("DRY RUN", status.warn)
+            }
+            Spacer(Modifier.height(24.dp))
+
+            when (state.status) {
+                ProtectionStatus.PERMISSION_REQUIRED, ProtectionStatus.SERVICE_NOT_RUNNING -> {
+                    Button(
+                        onClick = actions.openAccessibilitySettings,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = CircleShape,
+                    ) {
+                        Text("Open Accessibility settings", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+                ProtectionStatus.ACTIVE, ProtectionStatus.DISABLED -> {
+                    MasterToggle(
+                        checked = state.settings.protectionEnabled,
+                        onCheckedChange = actions.setProtectionEnabled,
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun LocalContentColorWithAlpha(alpha: Float): Color =
-    MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+private fun StatusOrb(icon: ImageVector, accent: Color, pulsing: Boolean) {
+    val transition = rememberInfiniteTransition(label = "orb")
+    val pulse by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (pulsing) 1.08f else 1f,
+        animationSpec = infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(136.dp)) {
+        Box(Modifier.size(136.dp).scale(pulse).clip(CircleShape).background(accent.copy(alpha = 0.08f)))
+        Box(Modifier.size(104.dp).clip(CircleShape).background(accent.copy(alpha = 0.16f)))
+        Box(
+            Modifier.size(72.dp).clip(CircleShape).background(accent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(38.dp))
+        }
+    }
+}
+
+@Composable
+private fun MasterToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable { onCheckedChange(!checked) },
+    ) {
+        Row(
+            Modifier.padding(start = 24.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (checked) "Protection on" else "Protection off",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+@Composable
+private fun SetupCard(state: HomeUiState, actions: HomeActions) {
+    var helpOpen by rememberSaveable { mutableStateOf(false) }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text("Set up in 3 steps", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Step(1, "Open Accessibility settings", "Use the button above")
+            Step(2, "Find ReelFree Reels blocker", "Under Installed apps or Downloaded apps")
+            Step(3, "Turn it on and tap Allow", "Android shows the same warning for every accessibility app", done = state.permissionGranted)
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable { helpOpen = !helpOpen }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Switch greyed out or “Restricted setting”?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    if (helpOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            AnimatedVisibility(helpOpen) {
+                Column {
+                    Text(
+                        "Android 13+ restricts apps installed from a browser. Open App info, tap ⋮ in the corner, " +
+                            "choose “Allow restricted settings”, then try again.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = actions.openAppInfo,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.outlinedButtonColors(),
+                    ) { Text("Open App info") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BlockersSection(state: HomeUiState, actions: HomeActions) {
+    val usable = state.permissionGranted && state.settings.protectionEnabled
+    val scheme = MaterialTheme.colorScheme
+    Column {
+        SectionLabel("Blocking")
+        RowGroup {
+            SwitchRow(
+                icon = Icons.Rounded.VideoLibrary,
+                tint = Color(0xFFE1306C),
+                title = "Instagram Reels",
+                subtitle = "Reels tab and full-screen Reels",
+                checked = state.settings.blockInstagramReels,
+                enabled = usable,
+                onCheckedChange = actions.setBlockReels,
+            )
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.Explore,
+                tint = scheme.primary,
+                title = "Instagram Explore",
+                subtitle = "Optional, off by default",
+                enabled = false,
+            ) { Pill("SOON", scheme.onSurfaceVariant) }
+            RowDivider()
+            SettingRow(
+                icon = Icons.Rounded.SmartDisplay,
+                tint = Color(0xFFE53935),
+                title = "YouTube Shorts",
+                subtitle = "Optional, off by default",
+                enabled = false,
+            ) { Pill("SOON", scheme.onSurfaceVariant) }
+        }
+    }
+}
+
+@Composable
+private fun Footer(instagramVersion: String?) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Rounded.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "Runs on your phone only · no internet access",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (instagramVersion == null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Instagram isn't installed",
+                style = MaterialTheme.typography.bodySmall,
+                color = LocalStatusColors.current.warn,
+            )
+        }
+    }
+}

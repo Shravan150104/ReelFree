@@ -12,30 +12,37 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.core.content.FileProvider
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.reelfree.service.AccessibilityPermission
 import com.reelfree.ui.MainViewModel
+import com.reelfree.ui.screens.BackTopBar
 import com.reelfree.ui.screens.DiagnosticsScreen
-import com.reelfree.ui.screens.DiagnosticsTopBar
 import com.reelfree.ui.screens.HomeActions
 import com.reelfree.ui.screens.HomeScreen
+import com.reelfree.ui.screens.SettingsActions
+import com.reelfree.ui.screens.SettingsScreen
 import com.reelfree.ui.theme.ReelFreeTheme
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private enum class Screen(val depth: Int) { HOME(0), SETTINGS(1), DIAGNOSTICS(2) }
 
 class MainActivity : ComponentActivity() {
 
@@ -51,20 +58,58 @@ class MainActivity : ComponentActivity() {
                 val state by viewModel.uiState.collectAsStateWithLifecycle()
                 val entries by viewModel.diagnosticEntries.collectAsStateWithLifecycle()
                 val screens by viewModel.diagnosticScreens.collectAsStateWithLifecycle()
-                var showDiagnostics by rememberSaveable { mutableStateOf(false) }
+                var screenName by rememberSaveable { mutableStateOf(Screen.HOME.name) }
+                val screen = Screen.valueOf(screenName)
+                fun go(to: Screen) { screenName = to.name }
 
-                BackHandler(enabled = showDiagnostics) { showDiagnostics = false }
+                BackHandler(enabled = screen != Screen.HOME) {
+                    go(if (screen == Screen.DIAGNOSTICS) Screen.SETTINGS else Screen.HOME)
+                }
 
                 Scaffold(
-                    topBar = { if (showDiagnostics) DiagnosticsTopBar(onBack = { showDiagnostics = false }) },
+                    containerColor = MaterialTheme.colorScheme.background,
+                    topBar = {
+                        when (screen) {
+                            Screen.HOME -> Unit
+                            Screen.SETTINGS -> BackTopBar("Settings") { go(Screen.HOME) }
+                            Screen.DIAGNOSTICS -> BackTopBar("Diagnostics") { go(Screen.SETTINGS) }
+                        }
+                    },
                 ) { padding ->
                     AnimatedContent(
-                        targetState = showDiagnostics,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        targetState = screen,
+                        transitionSpec = {
+                            val forward = targetState.depth > initialState.depth
+                            (slideInHorizontally { w -> if (forward) w / 6 else -w / 6 } + fadeIn()) togetherWith
+                                (slideOutHorizontally { w -> if (forward) -w / 6 else w / 6 } + fadeOut())
+                        },
                         label = "screen",
-                    ) { diagnostics ->
-                        if (diagnostics) {
-                            DiagnosticsScreen(
+                    ) { current ->
+                        when (current) {
+                            Screen.HOME -> HomeScreen(
+                                state = state,
+                                actions = HomeActions(
+                                    openAccessibilitySettings = { launch(AccessibilityPermission.accessibilitySettingsIntent()) },
+                                    openAppInfo = { launch(AccessibilityPermission.appDetailsIntent(this@MainActivity)) },
+                                    setProtectionEnabled = { viewModel.setProtectionEnabled(it) },
+                                    setBlockReels = { viewModel.setBlockReels(it) },
+                                    openSettings = { go(Screen.SETTINGS) },
+                                ),
+                                contentPadding = padding,
+                            )
+                            Screen.SETTINGS -> SettingsScreen(
+                                state = state,
+                                diagnosticEventCount = entries.size,
+                                actions = SettingsActions(
+                                    setDryRun = { viewModel.setDryRun(it) },
+                                    setDebugMode = { viewModel.setDebugMode(it) },
+                                    openDiagnostics = { go(Screen.DIAGNOSTICS) },
+                                    openAccessibilitySettings = { launch(AccessibilityPermission.accessibilitySettingsIntent()) },
+                                    openAppInfo = { launch(AccessibilityPermission.appDetailsIntent(this@MainActivity)) },
+                                ),
+                                contentPadding = padding,
+                            )
+                            Screen.DIAGNOSTICS -> DiagnosticsScreen(
                                 debugMode = state.settings.debugMode,
                                 entries = entries,
                                 screens = screens,
@@ -72,22 +117,6 @@ class MainActivity : ComponentActivity() {
                                 onShare = { shareReport() },
                                 onSave = { saveReport() },
                                 onClear = { viewModel.clearDiagnostics() },
-                                contentPadding = padding,
-                            )
-                        } else {
-                            HomeScreen(
-                                state = state,
-                                actions = HomeActions(
-                                    openAccessibilitySettings = {
-                                        launch(AccessibilityPermission.accessibilitySettingsIntent())
-                                    },
-                                    openAppInfo = { launch(AccessibilityPermission.appDetailsIntent(this@MainActivity)) },
-                                    setProtectionEnabled = { viewModel.setProtectionEnabled(it) },
-                                    setBlockReels = { viewModel.setBlockReels(it) },
-                                    setDryRun = { viewModel.setDryRun(it) },
-                                    setDebugMode = { viewModel.setDebugMode(it) },
-                                    openDiagnostics = { showDiagnostics = true },
-                                ),
                                 contentPadding = padding,
                             )
                         }

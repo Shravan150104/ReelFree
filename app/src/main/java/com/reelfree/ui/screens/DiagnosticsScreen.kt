@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reelfree.diagnostics.DetectionLogEntry
 import com.reelfree.diagnostics.ScreenSignature
+import com.reelfree.ui.components.SectionCard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,7 +81,7 @@ fun DiagnosticsScreen(
         item {
             SectionCard(title = "How to calibrate") {
                 val steps = listOf(
-                    "Turn on Debug mode and Dry run on the home screen.",
+                    "Turn on Debug mode and Dry run in Settings.",
                     "In Instagram, visit: Home feed, a Story, a DM thread, a profile grid, then open a Reel (Reels tab, from the feed, from a profile, from a DM).",
                     "Return here. Each event shows which rules matched and what ReelFree would have done.",
                     "If a Reel was missed or a normal screen matched, tap Share report and adjust InstagramReelsRules.kt.",

@@ -14,8 +14,8 @@ android {
         applicationId = "com.reelfree"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2-phase1"
+        versionCode = 4
+        versionName = "0.2.0-phase1"
     }
 
     // Release signing: CI reads REELFREE_* environment variables (from GitHub secrets);
@@ -61,6 +61,12 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // ./gradlew testDebugUnitTest -Pscreenshots renders UI screenshots to app/build/screenshots
+            it.systemProperty("reelfree.screenshots", project.findProperty("screenshots")?.toString() ?: "")
+            it.systemProperty("reelfree.screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
+        }
     }
 }
 
@@ -74,10 +80,14 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.material:material-icons-extended") // unused icons are removed by R8
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 }
