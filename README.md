@@ -45,13 +45,15 @@ Instagram UI ──AccessibilityEvent──▶ ReelFreeAccessibilityService   (m
 
 ### Why these detection rules
 
-| Rule | Kind | Weight | Idea |
-|---|---|---|---|
-| `ig.reels.clips_viewer_id` | signal | 70 | View whose ID contains `clips_viewer` and covers ≥90% width and ≥60% height. Instagram's code calls Reels "clips" |
-| `ig.reels.clips_fullscreen_container` | signal | 30 | Any full-screen `clips*` view. Too weak to block on its own |
-| `ig.reels.tab_selected` | signal | 70 | Bottom-bar node labelled "Reels" with `isSelected` |
-| `ig.veto.story_viewer` | veto | – | `reel_viewer` = **Stories** in Instagram's code. Never block |
-| `ig.veto.dm_composer` | veto | – | DM composer visible. Never block inside a chat |
+| Rule | Kind | Weight | Idea | Confirmed on device |
+|---|---|---|---|---|
+| `ig.reels.clips_viewer_id` | signal | 70 | View whose ID contains `clips_viewer` and covers ≥90% width and ≥60% height (`clips_viewer_view_pager`). Instagram's code calls Reels "clips" | ✅ IG 455.0.0.51.72 |
+| `ig.reels.clips_fullscreen_container` | signal | 30 | Any full-screen `clips*` view. Too weak to block on its own | ✅ |
+| `ig.reels.tab_selected` | signal | 70 | Bottom-bar `clips_tab` labelled "Reels" with `isSelected` (bar sits at ~88% of the screen height) | ✅ |
+| `ig.veto.story_viewer` | veto | – | `reel_viewer*` views (= **Stories** in Instagram's code) **without** the Reels pager. Never block. The Reels viewer opened from a DM also contains `reel_viewer_message_composer`, so `reel_viewer` alone is not enough | ⚠️ Stories not captured yet |
+| `ig.veto.dm_composer` | veto | – | `row_thread_composer*` visible. Never block inside a chat | ✅ |
+
+On the Reels tab, ReelFree taps the Home tab by its resource ID `feed_tab` (confirmed), falling back to a bottom-bar node labelled "Home".
 
 Blocking threshold is 60. The size requirement is what separates a full-screen Reel from a Reel thumbnail in the feed or on a profile grid.
 

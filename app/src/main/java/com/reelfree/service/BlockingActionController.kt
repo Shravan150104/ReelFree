@@ -79,11 +79,12 @@ class BlockingActionController(
         return BlockDecision.Allowed
     }
 
-    /** Call after an action was actually performed. */
+    /** Call after an action was actually performed (or simulated in a dry run). */
     @Synchronized
-    fun recordAction() {
+    fun recordAction(countTowardsLoopGuard: Boolean = true) {
         val now = clock.nowMillis()
         lastActionAt = now
+        if (!countTowardsLoopGuard) return
         recentActions.addLast(now)
         while (recentActions.isNotEmpty() && now - recentActions.first() > loopWindowMillis) {
             recentActions.removeFirst()

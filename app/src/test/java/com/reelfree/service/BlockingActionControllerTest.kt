@@ -59,6 +59,16 @@ class BlockingActionControllerTest {
     }
 
     @Test
+    fun `dry run actions apply cooldown but never trip the loop guard`() {
+        repeat(10) {
+            assertEquals(BlockDecision.Allowed, controller.check())
+            controller.recordAction(countTowardsLoopGuard = false)
+            assertTrue(controller.check() is BlockDecision.CoolingDown)
+            clock.now += 1_600
+        }
+    }
+
+    @Test
     fun `reset clears cooldown and lockout`() {
         repeat(4) { controller.recordAction(); clock.now += 100 }
         controller.reset()

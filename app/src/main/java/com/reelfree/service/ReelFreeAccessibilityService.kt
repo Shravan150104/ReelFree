@@ -195,7 +195,9 @@ class ReelFreeAccessibilityService : AccessibilityService() {
         }
 
         if (s.dryRun) {
-            controller.recordAction() // so dry-run logs show realistic cooldown behaviour
+            // Cooldown only: in a dry run the Reel stays open, so counting these towards the
+            // loop guard would just trip it and hide later detections.
+            controller.recordAction(countTowardsLoopGuard = false)
             gate.reset()
             return "DRY RUN - would ${result.action}"
         }
@@ -214,9 +216,24 @@ class ReelFreeAccessibilityService : AccessibilityService() {
         BlockAction.BACK -> performGlobalAction(GLOBAL_ACTION_BACK)
     }
 
-    /** Taps the bottom-bar node whose label is the vocabulary term "home". */
+    /**
+     * Taps Instagram's bottom-bar Home tab: first by its resource ID ("feed_tab"),
+     * then by a bottom-of-screen node labelled "Home".
+     */
     private fun clickHomeTab(root: AccessibilityNodeInfo): Boolean {
         val screen = Rect().also { root.getBoundsInScreen(it) }
+        val byId = try {
+            root.findAccessibilityNodeInfosByViewId(InstagramReelsRules.HOME_TAB_VIEW_ID)
+        } catch (e: RuntimeException) {
+            emptyList()
+        }
+        var clickedById = false
+        for (node in byId) {
+            if (!clickedById && node.isVisibleToUser) clickedById = clickSelfOrAncestor(node)
+            node.recycleCompat()
+        }
+        if (clickedById) return true
+
         val candidates = try {
             root.findAccessibilityNodeInfosByText("Home")
         } catch (e: RuntimeException) {

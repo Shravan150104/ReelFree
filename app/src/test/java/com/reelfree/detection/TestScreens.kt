@@ -57,6 +57,49 @@ object TestScreens {
         ),
     )
 
+    // ---- Structures transcribed from a real diagnostics report (Instagram 455.0.0.51.72). ----
+
+    /** Reels tab: bottom bar at 88%, plus the "Reels | Friends" top tabs (also labelled reels, selected, at 5%). */
+    fun recordedReelsTab() = ScreenSnapshot(
+        IG,
+        listOf(
+            root,
+            NodeSnapshot(viewId = "tab_bar", className = "LinearLayout", widthFraction = 1f, heightFraction = 0.05f, topFraction = 0.88f, depth = 10),
+            NodeSnapshot(viewId = "profile_tab", className = "FrameLayout", labelLength = 7, clickable = true, widthFraction = 0.2f, heightFraction = 0.05f, topFraction = 0.88f, depth = 11),
+            NodeSnapshot(viewId = "clips_tab", className = "FrameLayout", label = "reels", selected = true, clickable = true, widthFraction = 0.2f, heightFraction = 0.05f, topFraction = 0.88f, depth = 11),
+            NodeSnapshot(viewId = "feed_tab", className = "FrameLayout", label = "home", clickable = true, widthFraction = 0.2f, heightFraction = 0.05f, topFraction = 0.88f, depth = 11),
+            NodeSnapshot(viewId = "swipeable_tab_view_pager", className = "ViewPager", widthFraction = 1f, heightFraction = 0.84f, topFraction = 0.04f, depth = 10),
+            NodeSnapshot(viewId = "action_bar_tab_layout", className = "HorizontalScrollView", widthFraction = 0.57f, heightFraction = 0.04f, topFraction = 0.05f, depth = 19),
+            NodeSnapshot(className = "LinearLayout", label = "reels", selected = true, widthFraction = 0.21f, heightFraction = 0.04f, topFraction = 0.05f, depth = 20),
+            NodeSnapshot(viewId = "clips_viewer_view_pager", className = "ViewPager", widthFraction = 1f, heightFraction = 0.84f, topFraction = 0.04f, depth = 19),
+        ),
+    )
+
+    /** Home feed: same bottom bar, Home selected, no Reels pager. */
+    fun recordedHomeFeed() = ScreenSnapshot(
+        IG,
+        listOf(
+            root,
+            NodeSnapshot(viewId = "tab_bar", className = "LinearLayout", widthFraction = 1f, heightFraction = 0.05f, topFraction = 0.88f, depth = 10),
+            NodeSnapshot(viewId = "clips_tab", className = "FrameLayout", label = "reels", clickable = true, widthFraction = 0.2f, heightFraction = 0.05f, topFraction = 0.88f, depth = 11),
+            NodeSnapshot(viewId = "feed_tab", className = "FrameLayout", label = "home", selected = true, clickable = true, widthFraction = 0.2f, heightFraction = 0.05f, topFraction = 0.88f, depth = 11),
+            NodeSnapshot(viewId = "swipeable_tab_view_pager", className = "ViewPager", widthFraction = 1f, heightFraction = 0.84f, topFraction = 0.04f, depth = 10),
+        ),
+    )
+
+    /** Reel opened from a DM: full pager plus the "reply to sender" box named reel_viewer_message_composer. */
+    fun recordedReelFromDm() = ScreenSnapshot(
+        IG,
+        listOf(
+            root,
+            NodeSnapshot(viewId = "root_clips_layout", className = "FrameLayout", widthFraction = 1f, heightFraction = 1f, depth = 5),
+            NodeSnapshot(viewId = "reel_viewer_message_composer", className = "FrameLayout", widthFraction = 1f, heightFraction = 0.07f, topFraction = 0.9f, depth = 7),
+            NodeSnapshot(viewId = "sender_profile_pic", className = "ImageView", widthFraction = 0.08f, heightFraction = 0.04f, topFraction = 0.05f, depth = 9),
+            NodeSnapshot(viewId = "clips_viewer_view_pager", className = "ViewPager", widthFraction = 1f, heightFraction = 0.9f, depth = 8),
+            NodeSnapshot(viewId = "clips_video_container", className = "FrameLayout", widthFraction = 1f, heightFraction = 0.9f, depth = 12),
+        ),
+    )
+
     fun dmThread() = ScreenSnapshot(
         IG,
         listOf(

@@ -46,6 +46,28 @@ class InstagramReelsDetectorTest {
     }
 
     @Test
+    fun `recorded reels tab is blocked by tapping home despite top tabs also labelled reels`() {
+        val result = detector.detect(TestScreens.recordedReelsTab(), threshold)
+        assertTrue(result.shouldBlock)
+        assertEquals(BlockAction.CLICK_HOME_TAB, result.action)
+    }
+
+    @Test
+    fun `recorded home feed is not blocked`() {
+        val result = detector.detect(TestScreens.recordedHomeFeed(), threshold)
+        assertFalse(result.shouldBlock)
+        assertEquals(0, result.confidence)
+    }
+
+    @Test
+    fun `reel opened from a DM is blocked - reel_viewer_message_composer is not a story`() {
+        val result = detector.detect(TestScreens.recordedReelFromDm(), threshold)
+        assertTrue(result.matchedVetoes.toString(), result.matchedVetoes.isEmpty())
+        assertTrue(result.shouldBlock)
+        assertEquals(BlockAction.BACK, result.action)
+    }
+
+    @Test
     fun `dm thread is vetoed`() {
         val result = detector.detect(TestScreens.dmThread(), threshold)
         assertFalse(result.shouldBlock)

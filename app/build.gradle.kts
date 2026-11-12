@@ -14,8 +14,8 @@ android {
         applicationId = "com.reelfree"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1-phase1"
+        versionCode = 3
+        versionName = "0.1.2-phase1"
     }
 
     // Release signing: CI reads REELFREE_* environment variables (from GitHub secrets);
